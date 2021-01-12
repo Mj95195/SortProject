@@ -44,6 +44,9 @@ class SortFrame(tk.Frame):
         self.merge_button = tk.Button(self, text="Merge Sort", command = self.merge)
         self.merge_button.grid(column=3, row=0)
 
+        self.quick_button = tk.Button(self, text="Quick Sort", command=self.quick)
+        self.quick_button.grid(column=4, row=0)
+
         #Creates images and canvas
         self.rect = []
         for i in range(IMG_NUM):
@@ -80,6 +83,13 @@ class SortFrame(tk.Frame):
         self.merge_thread = MergeSort(self, "Merge Sort Thread")
         self.merge_thread.start()
 
+    def quick(self):
+        self.shuffle_list()
+        self.type = self.SortType.QUICK
+        self.display_list()
+        self.quick_thread = QuickSort(self, "Quick Sort Thread")
+        self.quick_thread.start()
+
     def display_list(self):
         self.canvas.delete("all")
         for i in range(IMG_NUM):
@@ -101,6 +111,7 @@ class SortFrame(tk.Frame):
         INSERTION = enum.auto()
         SELECTION = enum.auto()
         MERGE = enum.auto()
+        QUICK = enum.auto()
 
 #Thread to execute bubble sort
 class BubbleSort(threading.Thread):
@@ -186,6 +197,7 @@ class MergeSort(threading.Thread):
         self.name = name
         
     def run(self):
+        #initiatlization
         self.copy = [tk.PhotoImage()] * IMG_NUM
         curr_size = 1
         while (self.app.type == SortFrame.SortType.MERGE and curr_size < IMG_NUM):
@@ -193,12 +205,17 @@ class MergeSort(threading.Thread):
                 sleep(.5)
                 self.app.lock.acquire()
                 i = 0
+
+                #Calls merge
                 while (i < IMG_NUM and self.app.type and self.app.type == SortFrame.SortType.MERGE):
                     self.merge(i, min(i+curr_size, IMG_NUM), min(i+2*curr_size, IMG_NUM))
                     i += 2 * curr_size
+        
                 if (self.app.type != SortFrame.SortType.MERGE):
                     self.app.lock.release()
                     break
+
+                #Diplays the new rect
                 for j in range(IMG_NUM):
                     self.app.rect[j] = self.copy[j]
                 self.app.display_list()
@@ -217,5 +234,57 @@ class MergeSort(threading.Thread):
             else:
                 self.copy[k] = self.app.rect[j]
                 j += 1
+
+#Thread to execute Quick Sort
+class QuickSort(threading.Thread):
+    def __init__(self, own_app, name):
+        threading.Thread.__init__(self)
+        self.app = own_app
+        self.name = name
+
+    def run(self):
+        stack = [0] * (IMG_NUM)
+        top = 0
+        stack[top] = 0
+        top += 1
+        stack[top] = IMG_NUM-1
+
+        while (self.app.type == SortFrame.SortType.QUICK and top >= 0):
+            try:
+                sleep(.5)
+                self.app.lock.acquire()
+                h = stack[top]
+                top -= 1
+                l = stack[top]
+                top -= 1
+
+                index = self.partition(l, h)
+                if (index-1 > l):
+                    top += 1
+                    stack[top] = l
+                    top += 1
+                    stack[top] = index - 1
+                
+                if (index + 1 < h):
+                    top += 1
+                    stack[top] = index + 1
+                    top += 1
+                    stack[top] = h
+                
+                self.app.display_list()
+                self.app.lock.release()
+            except:
+                break
+
+    def partition(self, l, h):
+        i = (l-1)
+        check = self.app.rect[h]
+
+        for j in range(l, h):
+            if self.app.rect[j].height() <= check.height():
+                i += 1
+                self.app.rect[i], self.app.rect[j] = self.app.rect[j], self.app.rect[i]
+        self.app.rect[i+1], self.app.rect[h] = self.app.rect[h], self.app.rect[i+1]
+        return (i+1)
 
     
