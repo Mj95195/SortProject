@@ -286,5 +286,4 @@ class QuickSort(threading.Thread):
                 self.app.rect[i], self.app.rect[j] = self.app.rect[j], self.app.rect[i]
         self.app.rect[i+1], self.app.rect[h] = self.app.rect[h], self.app.rect[i+1]
         return (i+1)
-
     
